@@ -20,6 +20,7 @@ import { Table, Row, Cell, isTable } from '@kui-shell/core/api/table-models'
 
 import KubeOptions from '../../controller/kubectl/options'
 import { RawResponse } from '../../controller/kubectl/response'
+import { KubeResource } from '../../lib/model/resource'
 
 import cssForValue from './css-for-value'
 
@@ -300,6 +301,64 @@ export function isKubeTableResponse(response: KubeTableResponse | RawResponse): 
     isTable(response) ||
     (Array.isArray(response) && response.length > 0 && isTable(response[0]))
   )
+}
+
+/**
+ * Transform a kube resource into a default table mapping
+ *
+ */
+function defaultResourceToMap(kubeResource: KubeResource): Pair[][] {
+  const name = kubeResource.metadata.name
+  const firstSeen = kubeResource.metadata.creationTimestamp
+
+  let headerCells: string[]
+  let rowCells: string[]
+
+  if (kubeResource.kind === 'Pod') {
+    const restarts = kubeResource.status.containerStatuses.map(_ => _.restartCount).reduce((acc, cur) => acc + cur)
+
+    const readyContainers = kubeResource.status.containerStatuses.filter(_ => _.ready).length
+    const allContainers = kubeResource.status.containerStatuses.length
+    const ready = `${readyContainers}/${allContainers}`
+
+    const waitingStatus = kubeResource.status.containerStatuses[0].state.waiting
+      ? kubeResource.status.containerStatuses[0].state.waiting.reason
+      : ''
+    const terminatingStatus = kubeResource.status.containerStatuses[0].state.terminated ? 'Terminating' : ''
+    const status = waitingStatus || terminatingStatus
+
+    headerCells = ['NAME', 'READY', 'STATUS', 'RESARTS', 'AGE']
+    rowCells = [name, ready, status, restarts.toString(), firstSeen]
+  } else if (kubeResource.kind === 'Namespace') {
+    const status = kubeResource.status.phase
+
+    headerCells = ['NAME', 'STATUS', 'AGE']
+    rowCells = [name, status, firstSeen]
+  }
+
+  return [headerCells, rowCells].map(row => {
+    return row.map((cell, columnIdx) => {
+      return {
+        key: headerCells && headerCells[columnIdx],
+        value: cell
+      }
+    })
+  })
+}
+
+/**
+ * Display the given kubectl resource json as a REPL table
+ *
+ */
+export const jsonToTable = <O extends KubeOptions>(
+  kubeResource: KubeResource,
+  args: Arguments<O>,
+  command?: string,
+  verb?: string,
+  entityType?: string
+): Table => {
+  const preTable = defaultResourceToMap(kubeResource)
+  return formatTable(command, verb, entityType, args.parsedOptions, preTable)
 }
 
 /**
