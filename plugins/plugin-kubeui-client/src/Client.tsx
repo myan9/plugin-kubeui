@@ -35,9 +35,9 @@ export default function renderMain() {
         <CurrentContext />
         <CurrentNamespace />
       </ContextWidgets>
-      <MeterWidgets>
+      {/* <MeterWidgets>
         <ClusterUtilization />
-      </MeterWidgets>
+      </MeterWidgets> */}
     </DefaultClient>
   )
 }
