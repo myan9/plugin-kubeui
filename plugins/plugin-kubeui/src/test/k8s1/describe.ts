@@ -21,7 +21,7 @@ import {
   defaultModeForGet,
   createNS,
   allocateNS,
-  deleteNS
+  deleteNS,
 } from '@kui-shell/plugin-kubeui/tests/lib/k8s/utils'
 
 const commands = ['kubectl', 'k']
@@ -29,9 +29,9 @@ if (process.env.NEEDS_OC) {
   commands.push('oc')
 }
 
-commands.forEach(command => {
+commands.forEach((command) => {
   // this test is still oddly buggy with webpack+proxy, hence the localDescribe
-  Common.localDescribe(`${command} get summary tab describe ${process.env.MOCHA_RUN_TARGET || ''}`, function(
+  Common.localDescribe(`${command} get summary tab describe ${process.env.MOCHA_RUN_TARGET || ''}`, function (
     this: Common.ISuite
   ) {
     before(Common.before(this))
@@ -55,8 +55,8 @@ commands.forEach(command => {
               kind: 'Pod',
               metadata: {
                 name: 'nginx',
-                namespace: ns
-              }
+                namespace: ns,
+              },
             },
             false
           )
@@ -99,7 +99,16 @@ commands.forEach(command => {
         this.app
       )
         .then(ReplExpect.okWithCustom({ selector: Selectors.BY_NAME('nginx') }))
-        .then(selector => waitForGreen(this.app, selector))
+        .then((selector) => waitForGreen(this.app, selector))
+        .catch(Common.oops(this, true))
+    })
+
+    it(`should describe that pod via ${command}`, () => {
+      return CLI.command(`${command} describe pod nginx -n ${ns}`, this.app)
+        .then(ReplExpect.justOK)
+        .then(SidecarExpect.open)
+        .then(SidecarExpect.mode(defaultModeForGet))
+        .then(SidecarExpect.showing('nginx', undefined, undefined, ns))
         .catch(Common.oops(this, true))
     })
 
@@ -152,7 +161,7 @@ commands.forEach(command => {
       try {
         const count = parseInt(await this.app.client.getAttribute(Selectors.PROMPT_BLOCK_FINAL, 'data-input-count'), 10)
         const newResourceSelector = await ReplExpect.okWithCustom({
-          selector: Selectors.BY_NAME('nginx')
+          selector: Selectors.BY_NAME('nginx'),
         })({ app: this.app, count })
 
         await waitForRed(this.app, newResourceSelector)

@@ -30,11 +30,11 @@ import { KubeOptions } from './options'
  *
  */
 function prepareArgsForDescribe(args: Arguments<KubeOptions>) {
-  return `${args.command.replace(/(k|kubectl)(\s+)describe(\s+)/, '$1$2get$3')} -o yaml`
+  return `${args.command.replace(/(k|kubectl|oc)(\s+)describe(\s+)/, '$1$2get$3')} -o yaml`
 }
 
 export const doDescribe = (command = 'kubectl') =>
-  async function(args: Arguments<KubeOptions>): Promise<KubeResource> {
+  async function (args: Arguments<KubeOptions>): Promise<KubeResource> {
     // first, we do the raw exec of the given command
     const response = await exec(args, prepareArgsForDescribe, command)
 
